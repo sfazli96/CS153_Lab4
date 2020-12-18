@@ -33,7 +33,7 @@ void shminit() {
 // that data to it before storing it in the table
 int shm_open(int id, char **pointer) {
   //you write this
-  char exist = 0; // Value that determines whether the ID exists or not
+  char alreadyExists = 0; // Value that determines whether the ID exists or not
   int i = 0; 
 
   // Get the lock for the shm table
@@ -47,7 +47,7 @@ int shm_open(int id, char **pointer) {
 	// If the ID does exist, then set exist to 1, increment refcnt, and break
   	if(shm_table.shm_pages[i].id == id)
         {
-	    exist = 1;
+	    alreadyExists = 1;
             shm_table.shm_pages[i].refcnt++;
 	    break;
 	}
@@ -55,7 +55,7 @@ int shm_open(int id, char **pointer) {
 
   // Case 2: The target ID does not exist in the table
   // Only run this process if the above loop does not return true for char exist
-  if(!exist)
+  if(!alreadyExists)
   {
       // Loop through the table to find the page where the shared memory segment does not exist
       for(i = 0; i < 64; ++i)
