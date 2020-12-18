@@ -28,81 +28,93 @@ void shminit() {
   release(&(shm_table.lock));
 }
 
+// The shm_open function
+// Looks through the shm table to determine if segment ID exists, allocates a page and maps
+// that data to it before storing it in the table
 int shm_open(int id, char **pointer) {
+  //you write this
+  char exist = 0; // Value that determines whether the ID exists or not
+  int i = 0; 
 
-//you write this
-char exist = 0;          //This will check if the ID exists 
-int i = 0; 
-//acquire lock for shm table
-acquire(&(shm_table.lock));
-//Case 1: ID exists
-//We loop through the table
-for(i= 0; i < 64; ++i)
-{
-	if(shm_table.shm_pages[i].id == id)
+  // Get the lock for the shm table
+  acquire(&(shm_table.lock));
+  
+  // Case 1: The target ID already exists
+  // First loop through the entire shm table to see if ID exists or not
+  for(i= 0; i < 64; ++i)
+  {
+	// If the ID does exist, then set exist to 1 and break
+  	if(shm_table.shm_pages[i].id == id)
         {
-	    //check that it was case 1
 	    exist = 1;
 	    break;
 	}
-}
-//Case 2: If our shared memory segment does not exist then proceed in the for loop
-if(!exist)
-    {
-        //loop through the table to find the page
-        for(i = 0; i < 64; ++i)
-        {
-            if(shm_table.shm_pages[i].id == 0)
-            {
-		//allocate a new page
+  } 
+
+  // Case 2: The target ID does not exist in the table
+  // Run this process in that case
+  if(!exist)
+  {
+      // Loop through the table to find the page where the shared memory segment does not exist
+      for(i = 0; i < 64; ++i)
+      {
+	  // If found, alocate a new page and then break
+          if(shm_table.shm_pages[i].id == 0)
+          {
 		char *page = kalloc();
                 memset(page, 0, PGSIZE);
                 shm_table.shm_pages[i].frame = page;
                 shm_table.shm_pages[i].id = id;
                 break;
-            }
-        }
-    }
-// Now we will map the id to the memory in the page table 
-         mappages(
-		myproc()->pgdir,
-		(void *)PGROUNDUP(myproc()->sz),
-            	PGSIZE,
-            	V2P(shm_table.shm_pages[i].frame),
-            	(PTE_W | PTE_U)
-		);
-    shm_table.shm_pages[i].refcnt++;
-    *pointer = (char *)PGROUNDUP(myproc()->sz);
-    myproc()->sz += PGSIZE;
-    release(&(shm_table.lock));
+          }
+      }
+  }
+  // Adjust the memory table and add the ID to its corresponding memory page
+  mappages(
+	myproc()->pgdir,
+	(void *)PGROUNDUP(myproc()->sz),
+       	PGSIZE,
+        V2P(shm_table.shm_pages[i].frame),
+        (PTE_W | PTE_U)
+  );
+  shm_table.shm_pages[i].refcnt++;
+  *pointer = (char *)PGROUNDUP(myproc()->sz);
+  myproc()->sz += PGSIZE;
+  release(&(shm_table.lock));
 
-return 0; //added to remove compiler warning -- you should decide what to return
+  return 0;
 }
 
-
+// The shm_close function
+// Looks for the shared memory segment in shm table and decrements reference count
+// Clears the shm_table if it is zero (completely empty)
 int shm_close(int id) {
-//you write this too!
-for(int i = 0; i < 64; ++i)   // Loop through the page table
-{
-    //check if id is found
-    if(shm_table.shm_pages[i].id == id)
-    {
-        //check if memory is shared
-        if(shm_table.shm_pages[i].refcnt > 1)
-        {
- 	     --shm_table.shm_pages[i].refcnt;
-	}
-	else 
-	{
-            shm_table.shm_pages[i].id = 0;
-            shm_table.shm_pages[i].frame = 0;
-            shm_table.shm_pages[i].refcnt = 0;
-        }
-	break;
-    }
-}
+  //you write this too!
 
+  int i = 0;
+  
+  // Loop through the page table first to look for the ID
+  for(i = 0; i < 64; ++i)
+  {
+      // If the ID is found, then check to see if the memory is shared
+      if(shm_table.shm_pages[i].id == id)
+      {
+          // Decrement if the memory is shared
+          if(shm_table.shm_pages[i].refcnt > 1)
+          {
+ 	       --shm_table.shm_pages[i].refcnt;
+	  }
 
-
-return 0; //added to remove compiler warning -- you should decide what to return
+    	  // Set the values to zero otherwise
+	  else 
+	  {
+              shm_table.shm_pages[i].id = 0;
+              shm_table.shm_pages[i].frame = 0;
+              shm_table.shm_pages[i].refcnt = 0;
+          }
+	  break;
+      }
+  }
+ 
+  return 0;
 }
