@@ -46,9 +46,19 @@ int shm_open(int id, char **pointer) {
 	// If the ID does exist, then set exist to 1 and break
   	if(shm_table.shm_pages[i].id == id)
         {
+	    // Adjust the memory table and add the ID to its corresponding memory page
+    	    mappages(
+	      myproc()->pgdir,
+	      (void *)PGROUNDUP(myproc()->sz),
+       	      PGSIZE,
+              V2P(shm_table.shm_pages[i].frame),
+              (PTE_W | PTE_U)
+            );
+            ++shm_table.shm_pages[i].refcnt;
+
 	    exist = 1;
 	    break;
-	}
+        }
   } 
 
   // Case 2: The target ID does not exist in the table
@@ -58,7 +68,7 @@ int shm_open(int id, char **pointer) {
       // Loop through the table to find the page where the shared memory segment does not exist
       for(i = 0; i < 64; ++i)
       {
-	  // If found, alocate a new page and then break
+	  // If found, allocate a new page and then break
           if(shm_table.shm_pages[i].id == 0)
           {
 		char *page = kalloc();
@@ -69,15 +79,7 @@ int shm_open(int id, char **pointer) {
           }
       }
   }
-  // Adjust the memory table and add the ID to its corresponding memory page
-  mappages(
-	myproc()->pgdir,
-	(void *)PGROUNDUP(myproc()->sz),
-       	PGSIZE,
-        V2P(shm_table.shm_pages[i].frame),
-        (PTE_W | PTE_U)
-  );
-  shm_table.shm_pages[i].refcnt++;
+  
   *pointer = (char *)PGROUNDUP(myproc()->sz);
   myproc()->sz += PGSIZE;
   release(&(shm_table.lock));
@@ -92,6 +94,8 @@ int shm_close(int id) {
   //you write this too!
 
   int i = 0;
+
+  acquire(&(shm_table.lock));
   
   // Loop through the page table first to look for the ID
   for(i = 0; i < 64; ++i)
@@ -115,6 +119,8 @@ int shm_close(int id) {
 	  break;
       }
   }
+  
+  release(&(shm_table.lock));
  
   return 0;
 }
