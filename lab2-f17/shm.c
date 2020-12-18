@@ -92,7 +92,8 @@ int shm_close(int id) {
   //you write this too!
 
   int i = 0;
-  
+  acquire(&(shm_table.lock)); 
+ 
   // Loop through the page table first to look for the ID
   for(i = 0; i < 64; ++i)
   {
@@ -115,6 +116,7 @@ int shm_close(int id) {
 	  break;
       }
   }
- 
+  release(&(shm_table.lock)); 
+
   return 0;
 }
