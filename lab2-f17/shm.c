@@ -58,7 +58,7 @@ int shm_open(int id, char **pointer) {
       // Loop through the table to find the page where the shared memory segment does not exist
       for(i = 0; i < 64; ++i)
       {
-	  // If found, alocate a new page and then break
+	  // If found, allocate a new page and then break
           if(shm_table.shm_pages[i].id == 0)
           {
 		char *page = kalloc();
@@ -96,10 +96,10 @@ int shm_close(int id) {
   // Loop through the page table first to look for the ID
   for(i = 0; i < 64; ++i)
   {
-      // If the ID is found, then check to see if the memory is shared
+      // If the ID is found, then check to see if the reference count number is greater than 0
       if(shm_table.shm_pages[i].id == id)
       {
-          // Decrement if the memory is shared
+          // Decrement if refcnt is greater than 1
           if(shm_table.shm_pages[i].refcnt > 1)
           {
  	       --shm_table.shm_pages[i].refcnt;
