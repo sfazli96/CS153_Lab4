@@ -66,8 +66,8 @@ int shm_open(int id, char **pointer) {
           {
 		char *page = kalloc();
                 memset(page, 0, PGSIZE);
-                shm_table.shm_pages[i].frame = page;
                 shm_table.shm_pages[i].id = id;
+                shm_table.shm_pages[i].frame = page;
                 shm_table.shm_pages[i].refcnt = 1;
                 break;
           }
@@ -107,7 +107,7 @@ int shm_close(int id) {
           // Decrement if refcnt is greater than 1
           if(shm_table.shm_pages[i].refcnt > 1)
           {
- 	       --shm_table.shm_pages[i].refcnt;
+ 	       shm_table.shm_pages[i].refcnt--;
 	  }
 
     	  // Set the values of the page table to zero otherwise
