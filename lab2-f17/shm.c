@@ -44,7 +44,7 @@ int shm_open(int id, char **pointer) {
   // If the ID exists, then Case 1 is fulfilled, and the next part is skipped
   for(i= 0; i < 64; ++i)
   {
-	// If the ID does exist, then set exist to 1, increment refcnt, and break
+	// If the ID does exist, then set alreadyExists to 1, increment refcnt, and break
   	if(shm_table.shm_pages[i].id == id)
         {
 	    alreadyExists = 1;
@@ -54,7 +54,7 @@ int shm_open(int id, char **pointer) {
   } 
 
   // Case 2: The target ID does not exist in the table
-  // Only run this process if the above loop does not return true for char exist
+  // Only run this process if the above loop does not find an existing page
   if(!alreadyExists)
   {
       // Loop through the table to find the page where the shared memory segment does not exist
@@ -98,7 +98,7 @@ int shm_close(int id) {
   int i = 0;
   acquire(&(shm_table.lock)); // Acquire the lock for shm_table
  
-  // Loop through the page table first to look for the ID
+  // Search for ID of the segment in the table
   for(i = 0; i < 64; ++i)
   {
       // If the ID is found, then check to see if the reference count number is greater than 0
@@ -110,7 +110,7 @@ int shm_close(int id) {
  	       shm_table.shm_pages[i].refcnt--;
 	  }
 
-    	  // Set the values of the page table to zero otherwise
+    	  // Set the values of the page table to zero and clear out otherwise
 	  else 
 	  {
               shm_table.shm_pages[i].id = 0;
